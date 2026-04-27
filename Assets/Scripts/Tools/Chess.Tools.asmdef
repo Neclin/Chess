@@ -1,0 +1,7 @@
+{
+  "name": "Chess.Tools",
+  "rootNamespace": "Chess.Tools",
+  "references": ["Chess.Core"],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": false
+}
