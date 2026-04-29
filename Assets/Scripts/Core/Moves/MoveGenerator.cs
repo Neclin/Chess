@@ -21,6 +21,22 @@ namespace Chess.Core.Moves
             GenerateCastlingMoves(board, moves, sideToMove, allOccupancy);
         }
 
+        public static void GenerateLegal(BoardState board, List<Move> moves)
+        {
+            var pseudoLegalMoves = new List<Move>(64);
+            GeneratePseudoLegal(board, pseudoLegalMoves);
+            PieceColor sideToMove = board.SideToMove;
+            PieceColor opponentColor = sideToMove == PieceColor.White ? PieceColor.Black : PieceColor.White;
+            foreach (var move in pseudoLegalMoves)
+            {
+                var undoInfo = MoveExecutor.MakeMove(board, move);
+                ulong kingBitboard = board.BitboardFor(PieceType.King, sideToMove);
+                bool isLegal = kingBitboard != 0 && !IsSquareAttacked(board, Bitboard.LowestSetBitIndex(kingBitboard), opponentColor);
+                MoveExecutor.UnmakeMove(board, move, undoInfo);
+                if (isLegal) moves.Add(move);
+            }
+        }
+
         private static void GenerateCastlingMoves(BoardState board, List<Move> moves, PieceColor sideToMove, ulong allOccupancy)
         {
             PieceColor opponentColor = sideToMove == PieceColor.White ? PieceColor.Black : PieceColor.White;
