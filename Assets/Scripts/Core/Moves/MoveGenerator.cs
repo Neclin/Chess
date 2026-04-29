@@ -20,6 +20,20 @@ namespace Chess.Core.Moves
             GenerateKingMoves(board, moves, sideToMove, ownOccupancy, opponentOccupancy);
         }
 
+        public static bool IsSquareAttacked(BoardState board, int squareIndex, PieceColor byColor)
+        {
+            ulong allOccupancy = board.AllOccupancy;
+            PieceColor opposingPawnLookupColor = byColor == PieceColor.White ? PieceColor.Black : PieceColor.White;
+            if ((PrecomputedAttacks.PawnAttacks[(int)opposingPawnLookupColor, squareIndex] & board.BitboardFor(PieceType.Pawn, byColor)) != 0) return true;
+            if ((PrecomputedAttacks.KnightAttacks[squareIndex] & board.BitboardFor(PieceType.Knight, byColor)) != 0) return true;
+            if ((PrecomputedAttacks.KingAttacks[squareIndex] & board.BitboardFor(PieceType.King, byColor)) != 0) return true;
+            ulong bishopsAndQueens = board.BitboardFor(PieceType.Bishop, byColor) | board.BitboardFor(PieceType.Queen, byColor);
+            if ((SlidingAttacks.Bishop(squareIndex, allOccupancy) & bishopsAndQueens) != 0) return true;
+            ulong rooksAndQueens = board.BitboardFor(PieceType.Rook, byColor) | board.BitboardFor(PieceType.Queen, byColor);
+            if ((SlidingAttacks.Rook(squareIndex, allOccupancy) & rooksAndQueens) != 0) return true;
+            return false;
+        }
+
         private static void GenerateKnightMoves(BoardState board, List<Move> moves, PieceColor sideToMove, ulong ownOccupancy, ulong opponentOccupancy)
         {
             ulong knightBitboard = board.BitboardFor(PieceType.Knight, sideToMove);
