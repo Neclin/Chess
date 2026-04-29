@@ -1,0 +1,8 @@
+{
+  "name": "Chess.Unity",
+  "rootNamespace": "Chess.Unity",
+  "references": ["Chess.Core"],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "autoReferenced": true
+}
