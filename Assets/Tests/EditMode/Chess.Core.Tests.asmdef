@@ -1,0 +1,9 @@
+{
+  "name": "Chess.Core.Tests",
+  "rootNamespace": "Chess.Core.Tests",
+  "references": ["Chess.Core"],
+  "optionalUnityReferences": ["TestAssemblies"],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": false,
+  "defineConstraints": ["UNITY_INCLUDE_TESTS"]
+}
