@@ -18,6 +18,54 @@ namespace Chess.Core.Moves
             GenerateRookMoves(board, moves, sideToMove, ownOccupancy, opponentOccupancy, allOccupancy);
             GenerateQueenMoves(board, moves, sideToMove, ownOccupancy, opponentOccupancy, allOccupancy);
             GenerateKingMoves(board, moves, sideToMove, ownOccupancy, opponentOccupancy);
+            GenerateCastlingMoves(board, moves, sideToMove, allOccupancy);
+        }
+
+        private static void GenerateCastlingMoves(BoardState board, List<Move> moves, PieceColor sideToMove, ulong allOccupancy)
+        {
+            PieceColor opponentColor = sideToMove == PieceColor.White ? PieceColor.Black : PieceColor.White;
+            if (sideToMove == PieceColor.White)
+            {
+                const int kingHomeE1 = 4;
+                const int squareF1 = 5;
+                const int squareG1 = 6;
+                const int squareD1 = 3;
+                const int squareC1 = 2;
+                const int squareB1 = 1;
+                if ((board.Castling & CastlingRights.WhiteKingside) != 0
+                    && (allOccupancy & ((1UL << squareF1) | (1UL << squareG1))) == 0
+                    && !IsSquareAttacked(board, kingHomeE1, opponentColor)
+                    && !IsSquareAttacked(board, squareF1, opponentColor)
+                    && !IsSquareAttacked(board, squareG1, opponentColor))
+                    moves.Add(new Move(kingHomeE1, squareG1, MoveFlags.CastleKingside));
+                if ((board.Castling & CastlingRights.WhiteQueenside) != 0
+                    && (allOccupancy & ((1UL << squareB1) | (1UL << squareC1) | (1UL << squareD1))) == 0
+                    && !IsSquareAttacked(board, kingHomeE1, opponentColor)
+                    && !IsSquareAttacked(board, squareD1, opponentColor)
+                    && !IsSquareAttacked(board, squareC1, opponentColor))
+                    moves.Add(new Move(kingHomeE1, squareC1, MoveFlags.CastleQueenside));
+            }
+            else
+            {
+                const int kingHomeE8 = 60;
+                const int squareF8 = 61;
+                const int squareG8 = 62;
+                const int squareD8 = 59;
+                const int squareC8 = 58;
+                const int squareB8 = 57;
+                if ((board.Castling & CastlingRights.BlackKingside) != 0
+                    && (allOccupancy & ((1UL << squareF8) | (1UL << squareG8))) == 0
+                    && !IsSquareAttacked(board, kingHomeE8, opponentColor)
+                    && !IsSquareAttacked(board, squareF8, opponentColor)
+                    && !IsSquareAttacked(board, squareG8, opponentColor))
+                    moves.Add(new Move(kingHomeE8, squareG8, MoveFlags.CastleKingside));
+                if ((board.Castling & CastlingRights.BlackQueenside) != 0
+                    && (allOccupancy & ((1UL << squareB8) | (1UL << squareC8) | (1UL << squareD8))) == 0
+                    && !IsSquareAttacked(board, kingHomeE8, opponentColor)
+                    && !IsSquareAttacked(board, squareD8, opponentColor)
+                    && !IsSquareAttacked(board, squareC8, opponentColor))
+                    moves.Add(new Move(kingHomeE8, squareC8, MoveFlags.CastleQueenside));
+            }
         }
 
         public static bool IsSquareAttacked(BoardState board, int squareIndex, PieceColor byColor)
