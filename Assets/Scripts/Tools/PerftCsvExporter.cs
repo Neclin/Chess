@@ -72,7 +72,7 @@ namespace Chess.Tools
         {
             var stopwatch = Stopwatch.StartNew();
             var csvBuilder = new StringBuilder();
-            csvBuilder.AppendLine("position,depth,nodes");
+            csvBuilder.AppendLine("position,depth,nodes,timeMs");
 
             int totalCases = 0;
             int matchingCases = 0;
@@ -94,7 +94,8 @@ namespace Chess.Tools
 
                     csvBuilder.Append(perftCase.PositionName).Append(',')
                               .Append(depth).Append(',')
-                              .Append(actualNodeCount)
+                              .Append(actualNodeCount).Append(',')
+                              .Append(caseStopwatch.ElapsedMilliseconds)
                               .AppendLine();
 
                     string matchMarker = matchesCanonical ? "OK" : $"MISMATCH (canonical={canonicalNodeCount})";
