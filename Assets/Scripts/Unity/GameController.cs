@@ -28,6 +28,7 @@ namespace Chess.Unity
         public GameResult LastResult { get; private set; }
 
         public event Action<Move, string, UndoInfo> OnMoveApplied;
+        public event Action<GameResult> OnGameOver;
         public event Action OnGameReset;
 
         private readonly List<Move> _movesPlayed = new List<Move>();
@@ -131,6 +132,7 @@ namespace Chess.Unity
             GameResult result = GameStateChecker.Evaluate(State);
             LastResult = result;
             if (result == GameResult.Ongoing) return;
+            OnGameOver?.Invoke(result);
             if (GameOverUI != null) GameOverUI.Show(this);
             else Debug.Log($"Game over: {result}");
         }
