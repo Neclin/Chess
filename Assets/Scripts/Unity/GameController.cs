@@ -1,7 +1,9 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Chess.Core.Board;
 using Chess.Core.Moves;
+using Chess.Core.Notation;
 using Chess.Core.Rules;
 using Chess.Unity.UI;
 
@@ -24,6 +26,9 @@ namespace Chess.Unity
         public BoardState InitialBoardState { get; private set; }
         public IReadOnlyList<Move> MovesPlayed => _movesPlayed;
         public GameResult LastResult { get; private set; }
+
+        public event Action<Move, string, UndoInfo> OnMoveApplied;
+        public event Action OnGameReset;
 
         private readonly List<Move> _movesPlayed = new List<Move>();
         private Move? _lastMovePlayed;
@@ -84,6 +89,7 @@ namespace Chess.Unity
             LastResult = GameResult.Ongoing;
             Board.Sync(State);
             Highlights.Clear();
+            OnGameReset?.Invoke();
         }
 
         private void ApplyChosenMove(Move chosenMove)
@@ -107,13 +113,15 @@ namespace Chess.Unity
 
         private void Apply(Move appliedMove)
         {
-            MoveExecutor.MakeMove(State, appliedMove);
+            string sanText = San.ToSan(State, appliedMove);
+            UndoInfo undoInfo = MoveExecutor.MakeMove(State, appliedMove);
             History.Push(State.ZobristKey);
             _movesPlayed.Add(appliedMove);
             _lastMovePlayed = appliedMove;
             Board.Sync(State);
             Highlights.Clear();
             Highlights.ShowLastMove(appliedMove.FromSquare, appliedMove.ToSquare);
+            OnMoveApplied?.Invoke(appliedMove, sanText, undoInfo);
             CheckGameOver();
         }
 
