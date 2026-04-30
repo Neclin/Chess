@@ -19,12 +19,31 @@ namespace Chess.Core.Search
         }
     }
 
+    [System.Flags]
+    public enum SearchFeatureFlags : byte
+    {
+        None = 0,
+        UseTranspositionTable = 1,
+        UseMoveOrdering = 2,
+        All = UseTranspositionTable | UseMoveOrdering
+    }
+
     public static class MinimaxSearch
     {
         public const int MateScore = 1_000_000;
         public const int Infinity = 10_000_000;
 
+        public static SearchFeatureFlags Features = SearchFeatureFlags.All;
+
         private static TranspositionTable _transpositionTable = new TranspositionTable(sizeMegabytes: 64);
+
+        public static double GetTTFillPercent()
+        {
+            if ((Features & SearchFeatureFlags.UseTranspositionTable) == 0) return 0.0;
+            return _transpositionTable.FillPercent();
+        }
+
+        public static void ResetTTStats() => _transpositionTable.Clear();
 
         public static SearchResult FindBestMove(BoardState board, int depth)
         {
@@ -63,9 +82,11 @@ namespace Chess.Core.Search
             if (depth == 0) return Evaluator.Evaluate(board);
 
             int originalAlpha = alpha;
+            bool useTranspositionTable = (Features & SearchFeatureFlags.UseTranspositionTable) != 0;
+            bool useMoveOrdering = (Features & SearchFeatureFlags.UseMoveOrdering) != 0;
 
             Move transpositionBestMove = default;
-            if (_transpositionTable.Probe(board.ZobristKey, out var tableEntry))
+            if (useTranspositionTable && _transpositionTable.Probe(board.ZobristKey, out var tableEntry))
             {
                 transpositionBestMove = tableEntry.BestMove;
                 if (tableEntry.Depth >= depth)
@@ -81,7 +102,7 @@ namespace Chess.Core.Search
             if (legalMoves.Count == 0)
                 return GameStateChecker.InCheck(board) ? -MateScore + (1000 - depth) : 0;
 
-            OrderMoves(board, legalMoves, transpositionBestMove);
+            if (useMoveOrdering) OrderMoves(board, legalMoves, transpositionBestMove);
 
             int bestScore = -Infinity;
             Move bestMoveAtThisNode = default;
@@ -101,11 +122,14 @@ namespace Chess.Core.Search
                 if (alpha >= beta) break;
             }
 
-            TranspositionBound bound;
-            if (bestScore <= originalAlpha) bound = TranspositionBound.UpperBound;
-            else if (bestScore >= beta) bound = TranspositionBound.LowerBound;
-            else bound = TranspositionBound.Exact;
-            _transpositionTable.Store(board.ZobristKey, depth, bestScore, bound, bestMoveAtThisNode);
+            if (useTranspositionTable)
+            {
+                TranspositionBound bound;
+                if (bestScore <= originalAlpha) bound = TranspositionBound.UpperBound;
+                else if (bestScore >= beta) bound = TranspositionBound.LowerBound;
+                else bound = TranspositionBound.Exact;
+                _transpositionTable.Store(board.ZobristKey, depth, bestScore, bound, bestMoveAtThisNode);
+            }
 
             return bestScore;
         }
