@@ -25,7 +25,8 @@ namespace Chess.Core.Search
         None = 0,
         UseTranspositionTable = 1,
         UseMoveOrdering = 2,
-        All = UseTranspositionTable | UseMoveOrdering
+        UseMagicBitboards = 4,
+        All = UseTranspositionTable | UseMoveOrdering | UseMagicBitboards
     }
 
     public static class MinimaxSearch
@@ -36,6 +37,16 @@ namespace Chess.Core.Search
         public static SearchFeatureFlags Features = SearchFeatureFlags.All;
 
         private static TranspositionTable _transpositionTable = new TranspositionTable(sizeMegabytes: 64);
+
+        public static void ConfigFlags(bool useTranspositionTable, bool useMoveOrdering, bool useMagicBitboards)
+        {
+            SearchFeatureFlags configuredFlags = SearchFeatureFlags.None;
+            if (useTranspositionTable) configuredFlags |= SearchFeatureFlags.UseTranspositionTable;
+            if (useMoveOrdering) configuredFlags |= SearchFeatureFlags.UseMoveOrdering;
+            if (useMagicBitboards) configuredFlags |= SearchFeatureFlags.UseMagicBitboards;
+            Features = configuredFlags;
+            SlidingAttacks.UseMagicBitboards = useMagicBitboards;
+        }
 
         public static double GetTTFillPercent()
         {
