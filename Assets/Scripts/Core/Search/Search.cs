@@ -64,17 +64,24 @@ namespace Chess.Core.Search
 
             int originalAlpha = alpha;
 
-            if (_transpositionTable.Probe(board.ZobristKey, out var tableEntry) && tableEntry.Depth >= depth)
+            Move transpositionBestMove = default;
+            if (_transpositionTable.Probe(board.ZobristKey, out var tableEntry))
             {
-                if (tableEntry.Bound == TranspositionBound.Exact) return tableEntry.Score;
-                if (tableEntry.Bound == TranspositionBound.LowerBound && tableEntry.Score >= beta) return tableEntry.Score;
-                if (tableEntry.Bound == TranspositionBound.UpperBound && tableEntry.Score <= alpha) return tableEntry.Score;
+                transpositionBestMove = tableEntry.BestMove;
+                if (tableEntry.Depth >= depth)
+                {
+                    if (tableEntry.Bound == TranspositionBound.Exact) return tableEntry.Score;
+                    if (tableEntry.Bound == TranspositionBound.LowerBound && tableEntry.Score >= beta) return tableEntry.Score;
+                    if (tableEntry.Bound == TranspositionBound.UpperBound && tableEntry.Score <= alpha) return tableEntry.Score;
+                }
             }
 
             var legalMoves = new List<Move>(64);
             MoveGenerator.GenerateLegal(board, legalMoves);
             if (legalMoves.Count == 0)
                 return GameStateChecker.InCheck(board) ? -MateScore + (1000 - depth) : 0;
+
+            OrderMoves(board, legalMoves, transpositionBestMove);
 
             int bestScore = -Infinity;
             Move bestMoveAtThisNode = default;
@@ -101,6 +108,33 @@ namespace Chess.Core.Search
             _transpositionTable.Store(board.ZobristKey, depth, bestScore, bound, bestMoveAtThisNode);
 
             return bestScore;
+        }
+
+        private static void OrderMoves(BoardState board, List<Move> moves, Move transpositionBestMove)
+        {
+            int ScoreMove(Move candidateMove)
+            {
+                if (transpositionBestMove.FromSquare == candidateMove.FromSquare
+                    && transpositionBestMove.ToSquare == candidateMove.ToSquare
+                    && transpositionBestMove.Flags == candidateMove.Flags)
+                    return 1_000_000;
+
+                if (candidateMove.IsCapture)
+                {
+                    PieceType attackerType = board.PieceAt(candidateMove.FromSquare, out _);
+                    PieceType victimType = (candidateMove.Flags & MoveFlags.EnPassant) != 0
+                        ? PieceType.Pawn
+                        : board.PieceAt(candidateMove.ToSquare, out _);
+                    return 100_000 + 10 * Evaluator.MaterialValueByPieceType[(int)victimType] - Evaluator.MaterialValueByPieceType[(int)attackerType];
+                }
+
+                if (candidateMove.IsPromotion)
+                    return 90_000 + Evaluator.MaterialValueByPieceType[(int)candidateMove.PromotionPiece];
+
+                return 0;
+            }
+
+            moves.Sort((firstMove, secondMove) => ScoreMove(secondMove).CompareTo(ScoreMove(firstMove)));
         }
     }
 }
