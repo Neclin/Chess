@@ -12,6 +12,9 @@ namespace Chess.Unity
 
         [Header("Colors")]
         public BoardColorPalette ColorPalette;
+        public BoardColorPalette WoodPalette;
+        public BoardColorPalette LightPalette;
+        public BoardColorPalette DarkPalette;
 
         [Header("Piece sprites — 12 entries indexed by (color * 6 + (pieceType - 1))")]
         public Sprite[] PieceSprites = new Sprite[12];
@@ -24,6 +27,12 @@ namespace Chess.Unity
         private GameObject _draggedPieceObject;
 
         public SquareView GetSquareView(int squareIndex) => _squareViews[squareIndex];
+
+        private void Awake()
+        {
+            if (WoodPalette == null) WoodPalette = ColorPalette;
+            ColorPalette = SelectPaletteForTheme(SettingsStore.LoadBoardTheme());
+        }
 
         public void Build()
         {
@@ -82,6 +91,42 @@ namespace Chess.Unity
 
         public static int SpriteIndex(PieceType pieceType, PieceColor pieceColor)
             => (int)pieceColor * 6 + ((int)pieceType - 1);
+
+        public BoardColorPalette SelectPaletteForTheme(BoardTheme theme)
+        {
+            BoardColorPalette resolvedPalette = theme switch
+            {
+                BoardTheme.Wood => WoodPalette,
+                BoardTheme.Light => LightPalette,
+                BoardTheme.Dark => DarkPalette,
+                _ => WoodPalette
+            };
+            return resolvedPalette != null ? resolvedPalette : ColorPalette;
+        }
+
+        public void ApplyTheme(BoardTheme theme)
+        {
+            var resolvedPalette = SelectPaletteForTheme(theme);
+            if (resolvedPalette == null) return;
+            ColorPalette = resolvedPalette;
+            for (int squareIndex = 0; squareIndex < 64; squareIndex++)
+            {
+                if (_squareViews[squareIndex] == null) continue;
+                _squareViews[squareIndex].ColorPalette = resolvedPalette;
+                _squareViews[squareIndex].SetHighlightState(SquareHighlightState.Normal);
+            }
+        }
+
+        public void SetOrientation(bool flipForBlack)
+        {
+            if (FlipForBlack == flipForBlack) return;
+            FlipForBlack = flipForBlack;
+            for (int squareIndex = 0; squareIndex < 64; squareIndex++)
+            {
+                if (_squareViews[squareIndex] == null) continue;
+                _squareViews[squareIndex].transform.localPosition = ToLocalPosition(squareIndex);
+            }
+        }
 
         private void HandleDragBegin(int sourceSquareIndex)
         {

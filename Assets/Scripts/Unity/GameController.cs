@@ -28,6 +28,7 @@ namespace Chess.Unity
         public GameResult LastResult { get; private set; }
 
         public event Action<Move, string, UndoInfo> OnMoveApplied;
+        public event Action<GameResult> OnGameOver;
         public event Action OnGameReset;
 
         private readonly List<Move> _movesPlayed = new List<Move>();
@@ -74,7 +75,7 @@ namespace Chess.Unity
 
         private void ApplyMainMenuPreferences()
         {
-            PieceColor? preferredHumanColor = GamePreferences.LoadHumanColor();
+            PieceColor? preferredHumanColor = SettingsStore.LoadHumanColor();
             if (preferredHumanColor.HasValue) HumanColor = preferredHumanColor.Value;
         }
 
@@ -118,6 +119,7 @@ namespace Chess.Unity
             History.Push(State.ZobristKey);
             _movesPlayed.Add(appliedMove);
             _lastMovePlayed = appliedMove;
+            if (SettingsStore.LoadFlipBoardAfterMove()) Board.SetOrientation(!Board.FlipForBlack);
             Board.Sync(State);
             Highlights.Clear();
             Highlights.ShowLastMove(appliedMove.FromSquare, appliedMove.ToSquare);
@@ -130,6 +132,7 @@ namespace Chess.Unity
             GameResult result = GameStateChecker.Evaluate(State);
             LastResult = result;
             if (result == GameResult.Ongoing) return;
+            OnGameOver?.Invoke(result);
             if (GameOverUI != null) GameOverUI.Show(this);
             else Debug.Log($"Game over: {result}");
         }

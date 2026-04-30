@@ -25,7 +25,7 @@ namespace Chess.Unity
 
         public void ApplyDifficultyFromPreferences()
         {
-            Difficulty preferredDifficulty = GamePreferences.LoadDifficulty();
+            Difficulty preferredDifficulty = SettingsStore.LoadDifficulty();
             SearchSettings preferredSettings = DifficultyPresets.SearchSettingsFor(preferredDifficulty);
             UseTimeBudget = false;
             SearchDepth = preferredSettings.FixedDepth;

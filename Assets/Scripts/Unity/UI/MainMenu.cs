@@ -13,7 +13,9 @@ namespace Chess.Unity.UI
         public Button HardDifficultyButton;
         public Button PlayAsWhiteButton;
         public Button PlayAsBlackButton;
+        public Button SettingsButton;
         public Button QuitButton;
+        public SettingsMenu SettingsMenu;
         public Color SelectedDifficultyColor = new Color(0.30f, 0.55f, 0.85f, 1f);
         public Color UnselectedDifficultyColor = new Color(0.18f, 0.20f, 0.26f, 1f);
         public string GameSceneName = "Game";
@@ -22,12 +24,13 @@ namespace Chess.Unity.UI
 
         private void Awake()
         {
-            _currentlySelectedDifficulty = GamePreferences.LoadDifficulty();
+            _currentlySelectedDifficulty = SettingsStore.LoadDifficulty();
             EasyDifficultyButton.onClick.AddListener(() => SelectDifficulty(Difficulty.Easy));
             MediumDifficultyButton.onClick.AddListener(() => SelectDifficulty(Difficulty.Medium));
             HardDifficultyButton.onClick.AddListener(() => SelectDifficulty(Difficulty.Hard));
             PlayAsWhiteButton.onClick.AddListener(() => StartNewGame(PieceColor.White));
             PlayAsBlackButton.onClick.AddListener(() => StartNewGame(PieceColor.Black));
+            if (SettingsButton != null && SettingsMenu != null) SettingsButton.onClick.AddListener(SettingsMenu.Open);
             QuitButton.onClick.AddListener(QuitApplication);
             RefreshDifficultyButtonHighlights();
         }
@@ -35,7 +38,7 @@ namespace Chess.Unity.UI
         private void SelectDifficulty(Difficulty difficulty)
         {
             _currentlySelectedDifficulty = difficulty;
-            GamePreferences.SaveDifficulty(difficulty);
+            SettingsStore.SaveDifficulty(difficulty);
             RefreshDifficultyButtonHighlights();
         }
 
@@ -55,8 +58,8 @@ namespace Chess.Unity.UI
 
         private void StartNewGame(PieceColor humanColor)
         {
-            GamePreferences.SaveHumanColor(humanColor);
-            GamePreferences.SaveDifficulty(_currentlySelectedDifficulty);
+            SettingsStore.SaveHumanColor(humanColor);
+            SettingsStore.SaveDifficulty(_currentlySelectedDifficulty);
             SceneManager.LoadScene(GameSceneName);
         }
 
