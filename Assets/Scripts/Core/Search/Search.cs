@@ -24,6 +24,8 @@ namespace Chess.Core.Search
         public const int MateScore = 1_000_000;
         public const int Infinity = 10_000_000;
 
+        private static TranspositionTable _transpositionTable = new TranspositionTable(sizeMegabytes: 64);
+
         public static SearchResult FindBestMove(BoardState board, int depth)
         {
             long nodesVisited = 0;
@@ -60,20 +62,45 @@ namespace Chess.Core.Search
             nodesVisited++;
             if (depth == 0) return Evaluator.Evaluate(board);
 
+            int originalAlpha = alpha;
+
+            if (_transpositionTable.Probe(board.ZobristKey, out var tableEntry) && tableEntry.Depth >= depth)
+            {
+                if (tableEntry.Bound == TranspositionBound.Exact) return tableEntry.Score;
+                if (tableEntry.Bound == TranspositionBound.LowerBound && tableEntry.Score >= beta) return tableEntry.Score;
+                if (tableEntry.Bound == TranspositionBound.UpperBound && tableEntry.Score <= alpha) return tableEntry.Score;
+            }
+
             var legalMoves = new List<Move>(64);
             MoveGenerator.GenerateLegal(board, legalMoves);
             if (legalMoves.Count == 0)
                 return GameStateChecker.InCheck(board) ? -MateScore + (1000 - depth) : 0;
+
+            int bestScore = -Infinity;
+            Move bestMoveAtThisNode = default;
 
             foreach (var legalMove in legalMoves)
             {
                 var undoInfo = MoveExecutor.MakeMove(board, legalMove);
                 int score = -AlphaBeta(board, depth - 1, -beta, -alpha, ref nodesVisited);
                 MoveExecutor.UnmakeMove(board, legalMove, undoInfo);
-                if (score >= beta) return beta;
+
+                if (score > bestScore)
+                {
+                    bestScore = score;
+                    bestMoveAtThisNode = legalMove;
+                }
                 if (score > alpha) alpha = score;
+                if (alpha >= beta) break;
             }
-            return alpha;
+
+            TranspositionBound bound;
+            if (bestScore <= originalAlpha) bound = TranspositionBound.UpperBound;
+            else if (bestScore >= beta) bound = TranspositionBound.LowerBound;
+            else bound = TranspositionBound.Exact;
+            _transpositionTable.Store(board.ZobristKey, depth, bestScore, bound, bestMoveAtThisNode);
+
+            return bestScore;
         }
     }
 }
