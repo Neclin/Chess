@@ -1,0 +1,24 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0c17596996d24d2284f1e0ff6662b5fc, type: 3}
+  m_Name: BoardColorPalette
+  m_EditorClassIdentifier: Chess.Unity::Chess.Unity.BoardColorPalette
+  LightNormal: {r: 0.94, g: 0.85, b: 0.71, a: 1}
+  LightMoveTarget: {r: 0.62, g: 0.82, b: 0.52, a: 1}
+  LightCaptureTarget: {r: 0.92, g: 0.55, b: 0.5, a: 1}
+  LightSelected: {r: 0.95, g: 0.85, b: 0.32, a: 1}
+  LightLastMove: {r: 0.96, g: 0.91, b: 0.58, a: 1}
+  DarkNormal: {r: 0.71, g: 0.53, b: 0.39, a: 1}
+  DarkMoveTarget: {r: 0.42, g: 0.62, b: 0.36, a: 1}
+  DarkCaptureTarget: {r: 0.7, g: 0.4, b: 0.32, a: 1}
+  DarkSelected: {r: 0.78, g: 0.58, b: 0.2, a: 1}
+  DarkLastMove: {r: 0.78, g: 0.66, b: 0.36, a: 1}
