@@ -73,3 +73,5 @@ desktop.ini
 tools/**/bin/
 tools/**/obj/
 !tools/**/*.csproj
+
+/savegames/

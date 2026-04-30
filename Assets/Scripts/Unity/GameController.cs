@@ -13,6 +13,7 @@ namespace Chess.Unity
         public InputController Input;
         public HighlightOverlay Highlights;
         public PromotionDialog PromotionUI;
+        public GameOverDialog GameOverUI;
         public AIController AI;
 
         public string StartingFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
@@ -20,14 +21,18 @@ namespace Chess.Unity
 
         public BoardState State { get; private set; }
         public RepetitionHistory History { get; } = new RepetitionHistory();
+        public BoardState InitialBoardState { get; private set; }
+        public IReadOnlyList<Move> MovesPlayed => _movesPlayed;
+        public GameResult LastResult { get; private set; }
 
+        private readonly List<Move> _movesPlayed = new List<Move>();
         private Move? _lastMovePlayed;
 
         private void Start()
         {
+            ApplyMainMenuPreferences();
             Board.Build();
-            State = FenParser.Parse(StartingFen);
-            Board.Sync(State);
+            InitialiseGame();
 
             Input.GetLegalMovesFromSquare = LegalMovesFromSquare;
             Input.OnSelectionChanged = (selectedSquareIndex, legalMovesFromSelection) =>
@@ -55,6 +60,32 @@ namespace Chess.Unity
             return allLegalMoves.FindAll(legalMove => legalMove.FromSquare == squareIndex);
         }
 
+        public void Restart(PieceColor humanColorForNextGame)
+        {
+            HumanColor = humanColorForNextGame;
+            InitialiseGame();
+            if (State.SideToMove != HumanColor) AI.RequestMove(State, ApplyAiMove);
+        }
+
+        private void ApplyMainMenuPreferences()
+        {
+            PieceColor? preferredHumanColor = GamePreferences.LoadHumanColor();
+            if (preferredHumanColor.HasValue) HumanColor = preferredHumanColor.Value;
+        }
+
+        private void InitialiseGame()
+        {
+            State = FenParser.Parse(StartingFen);
+            InitialBoardState = State.Clone();
+            History.Reset();
+            History.Push(State.ZobristKey);
+            _movesPlayed.Clear();
+            _lastMovePlayed = null;
+            LastResult = GameResult.Ongoing;
+            Board.Sync(State);
+            Highlights.Clear();
+        }
+
         private void ApplyChosenMove(Move chosenMove)
         {
             if (chosenMove.IsPromotion)
@@ -64,12 +95,12 @@ namespace Chess.Unity
                 {
                     var promotionMove = new Move(chosenMove.FromSquare, chosenMove.ToSquare, chosenMove.Flags, chosenPromotionType);
                     Apply(promotionMove);
-                    if (State.SideToMove != HumanColor) AI.RequestMove(State, ApplyAiMove);
+                    if (LastResult == GameResult.Ongoing && State.SideToMove != HumanColor) AI.RequestMove(State, ApplyAiMove);
                 });
                 return;
             }
             Apply(chosenMove);
-            if (State.SideToMove != HumanColor) AI.RequestMove(State, ApplyAiMove);
+            if (LastResult == GameResult.Ongoing && State.SideToMove != HumanColor) AI.RequestMove(State, ApplyAiMove);
         }
 
         private void ApplyAiMove(Move aiMove) => Apply(aiMove);
@@ -78,6 +109,7 @@ namespace Chess.Unity
         {
             MoveExecutor.MakeMove(State, appliedMove);
             History.Push(State.ZobristKey);
+            _movesPlayed.Add(appliedMove);
             _lastMovePlayed = appliedMove;
             Board.Sync(State);
             Highlights.Clear();
@@ -87,9 +119,11 @@ namespace Chess.Unity
 
         private void CheckGameOver()
         {
-            var result = GameStateChecker.Evaluate(State);
+            GameResult result = GameStateChecker.Evaluate(State);
+            LastResult = result;
             if (result == GameResult.Ongoing) return;
-            Debug.Log($"Game over: {result}");
+            if (GameOverUI != null) GameOverUI.Show(this);
+            else Debug.Log($"Game over: {result}");
         }
     }
 }

@@ -2,9 +2,9 @@ using System;
 using System.Collections.Concurrent;
 using System.Threading.Tasks;
 using UnityEngine;
-using Chess.Core.Board;
 using Chess.Core.Moves;
 using Chess.Core.Search;
+using Chess.Core.Board;
 
 namespace Chess.Unity
 {
@@ -14,8 +14,22 @@ namespace Chess.Unity
         public int TimeBudgetMs = 1000;
         public int MaxDepth = 64;
         public int SearchDepth = 4;
+        public bool ApplyMainMenuDifficulty = true;
 
         private readonly ConcurrentQueue<Action> _mainThreadCallbacks = new ConcurrentQueue<Action>();
+
+        private void Awake()
+        {
+            if (ApplyMainMenuDifficulty) ApplyDifficultyFromPreferences();
+        }
+
+        public void ApplyDifficultyFromPreferences()
+        {
+            Difficulty preferredDifficulty = GamePreferences.LoadDifficulty();
+            SearchSettings preferredSettings = DifficultyPresets.SearchSettingsFor(preferredDifficulty);
+            UseTimeBudget = false;
+            SearchDepth = preferredSettings.FixedDepth;
+        }
 
         private void Update()
         {
