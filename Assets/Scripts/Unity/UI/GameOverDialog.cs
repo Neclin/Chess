@@ -59,7 +59,7 @@ namespace Chess.Unity.UI
         {
             if (_activeGameController == null) return;
             PieceColor switchedHumanColor = _activeGameController.HumanColor == PieceColor.White ? PieceColor.Black : PieceColor.White;
-            GamePreferences.SaveHumanColor(switchedHumanColor);
+            SettingsStore.SaveHumanColor(switchedHumanColor);
             Hide();
             _activeGameController.Restart(switchedHumanColor);
         }

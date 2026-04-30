@@ -1,7 +1,7 @@
 {
   "name": "Chess.Core.Tests",
   "rootNamespace": "Chess.Core.Tests",
-  "references": ["Chess.Core", "Chess.Tools"],
+  "references": ["Chess.Core", "Chess.Tools", "Chess.Unity"],
   "optionalUnityReferences": ["TestAssemblies"],
   "includePlatforms": ["Editor"],
   "autoReferenced": false,

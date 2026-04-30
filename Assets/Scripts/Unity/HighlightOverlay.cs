@@ -24,6 +24,7 @@ namespace Chess.Unity
 
         public void ShowMoveTarget(int squareIndex, bool isCapture)
         {
+            if (!isCapture && !SettingsStore.LoadShowLegalMoveDots()) return;
             Board.GetSquareView(squareIndex).SetHighlightState(
                 isCapture ? SquareHighlightState.CaptureTarget : SquareHighlightState.MoveTarget);
             _activelyHighlightedSquares.Add(squareIndex);

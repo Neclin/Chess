@@ -74,7 +74,7 @@ namespace Chess.Unity
 
         private void ApplyMainMenuPreferences()
         {
-            PieceColor? preferredHumanColor = GamePreferences.LoadHumanColor();
+            PieceColor? preferredHumanColor = SettingsStore.LoadHumanColor();
             if (preferredHumanColor.HasValue) HumanColor = preferredHumanColor.Value;
         }
 
@@ -118,6 +118,7 @@ namespace Chess.Unity
             History.Push(State.ZobristKey);
             _movesPlayed.Add(appliedMove);
             _lastMovePlayed = appliedMove;
+            if (SettingsStore.LoadFlipBoardAfterMove()) Board.SetOrientation(!Board.FlipForBlack);
             Board.Sync(State);
             Highlights.Clear();
             Highlights.ShowLastMove(appliedMove.FromSquare, appliedMove.ToSquare);
