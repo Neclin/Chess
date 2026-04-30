@@ -4,21 +4,25 @@ namespace Chess.Core.Moves
 {
     public static class SlidingAttacks
     {
-        private static readonly int[,] RookDirections =
+        private static readonly int[,] RookRayDeltas =
         {
             { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }
         };
 
-        private static readonly int[,] BishopDirections =
+        private static readonly int[,] BishopRayDeltas =
         {
             { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 }
         };
 
-        public static ulong Rook(int squareIndex, ulong occupancyBitboard) => RayAttacks(squareIndex, occupancyBitboard, RookDirections);
-        public static ulong Bishop(int squareIndex, ulong occupancyBitboard) => RayAttacks(squareIndex, occupancyBitboard, BishopDirections);
+        public static ulong Rook(int squareIndex, ulong occupancyBitboard) => MagicBitboards.RookAttacks(squareIndex, occupancyBitboard);
+        public static ulong Bishop(int squareIndex, ulong occupancyBitboard) => MagicBitboards.BishopAttacks(squareIndex, occupancyBitboard);
         public static ulong Queen(int squareIndex, ulong occupancyBitboard) => Rook(squareIndex, occupancyBitboard) | Bishop(squareIndex, occupancyBitboard);
 
-        private static ulong RayAttacks(int squareIndex, ulong occupancyBitboard, int[,] directions)
+        public static ulong RookSlow(int squareIndex, ulong occupancyBitboard) => RaySlideAttacks(squareIndex, occupancyBitboard, RookRayDeltas);
+        public static ulong BishopSlow(int squareIndex, ulong occupancyBitboard) => RaySlideAttacks(squareIndex, occupancyBitboard, BishopRayDeltas);
+        public static ulong QueenSlow(int squareIndex, ulong occupancyBitboard) => RookSlow(squareIndex, occupancyBitboard) | BishopSlow(squareIndex, occupancyBitboard);
+
+        private static ulong RaySlideAttacks(int squareIndex, ulong occupancyBitboard, int[,] directions)
         {
             ulong attackBitboard = 0UL;
             int fromFile = Square.FileIndex(squareIndex);
