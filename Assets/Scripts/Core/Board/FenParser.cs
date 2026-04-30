@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using Chess.Core.Search;
 
 namespace Chess.Core.Board
 {
@@ -51,6 +52,7 @@ namespace Chess.Core.Board
             board.EnPassantSquare = fenFields[3] == "-" ? -1 : Square.FromAlgebraic(fenFields[3]);
             board.HalfmoveClock = fenFields.Length > 4 ? int.Parse(fenFields[4]) : 0;
             board.FullmoveNumber = fenFields.Length > 5 ? int.Parse(fenFields[5]) : 1;
+            board.ZobristKey = Zobrist.ComputeFromScratch(board);
             return board;
         }
 

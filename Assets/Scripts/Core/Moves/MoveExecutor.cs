@@ -1,4 +1,5 @@
 using Chess.Core.Board;
+using Chess.Core.Search;
 
 namespace Chess.Core.Moves
 {
@@ -54,38 +55,41 @@ namespace Chess.Core.Moves
                 capturedPiece = board.PieceAt(move.ToSquare, out _);
             }
 
+            CastlingRights previousCastlingRights = board.Castling;
+            int previousEnPassantSquare = board.EnPassantSquare;
+
             var undoInfo = new UndoInfo(
                 movedPiece,
                 capturedPiece,
                 opponentColor,
                 capturedSquare,
-                board.Castling,
-                board.EnPassantSquare,
+                previousCastlingRights,
+                previousEnPassantSquare,
                 board.HalfmoveClock,
                 board.ZobristKey);
 
             if (capturedPiece != PieceType.None)
-                board.RemovePiece(capturedPiece, opponentColor, capturedSquare);
-            board.RemovePiece(movedPiece, sideToMove, move.FromSquare);
+                RemovePieceWithKey(board, capturedPiece, opponentColor, capturedSquare);
+            RemovePieceWithKey(board, movedPiece, sideToMove, move.FromSquare);
 
             if (move.IsPromotion)
-                board.PlacePiece(move.PromotionPiece, sideToMove, move.ToSquare);
+                PlacePieceWithKey(board, move.PromotionPiece, sideToMove, move.ToSquare);
             else
-                board.PlacePiece(movedPiece, sideToMove, move.ToSquare);
+                PlacePieceWithKey(board, movedPiece, sideToMove, move.ToSquare);
 
             if ((move.Flags & MoveFlags.CastleKingside) != 0)
             {
                 int rookFromSquare = sideToMove == PieceColor.White ? 7 : 63;
                 int rookToSquare = sideToMove == PieceColor.White ? 5 : 61;
-                board.RemovePiece(PieceType.Rook, sideToMove, rookFromSquare);
-                board.PlacePiece(PieceType.Rook, sideToMove, rookToSquare);
+                RemovePieceWithKey(board, PieceType.Rook, sideToMove, rookFromSquare);
+                PlacePieceWithKey(board, PieceType.Rook, sideToMove, rookToSquare);
             }
             else if ((move.Flags & MoveFlags.CastleQueenside) != 0)
             {
                 int rookFromSquare = sideToMove == PieceColor.White ? 0 : 56;
                 int rookToSquare = sideToMove == PieceColor.White ? 3 : 59;
-                board.RemovePiece(PieceType.Rook, sideToMove, rookFromSquare);
-                board.PlacePiece(PieceType.Rook, sideToMove, rookToSquare);
+                RemovePieceWithKey(board, PieceType.Rook, sideToMove, rookFromSquare);
+                PlacePieceWithKey(board, PieceType.Rook, sideToMove, rookToSquare);
             }
 
             UpdateCastlingRights(board, movedPiece, sideToMove, move.FromSquare, move.ToSquare, capturedPiece);
@@ -99,6 +103,16 @@ namespace Chess.Core.Moves
                 : board.HalfmoveClock + 1;
             if (sideToMove == PieceColor.Black) board.FullmoveNumber++;
             board.SideToMove = opponentColor;
+
+            board.ZobristKey ^= Zobrist.CastlingRightsKeys[(int)previousCastlingRights];
+            board.ZobristKey ^= Zobrist.CastlingRightsKeys[(int)board.Castling];
+
+            if (previousEnPassantSquare >= 0)
+                board.ZobristKey ^= Zobrist.EnPassantFileKeys[Square.FileIndex(previousEnPassantSquare)];
+            if (board.EnPassantSquare >= 0)
+                board.ZobristKey ^= Zobrist.EnPassantFileKeys[Square.FileIndex(board.EnPassantSquare)];
+
+            board.ZobristKey ^= Zobrist.SideToMoveKey;
 
             return undoInfo;
         }
@@ -137,6 +151,18 @@ namespace Chess.Core.Moves
             board.EnPassantSquare = undoInfo.PreviousEnPassantSquare;
             board.HalfmoveClock = undoInfo.PreviousHalfmoveClock;
             board.ZobristKey = undoInfo.PreviousZobristKey;
+        }
+
+        private static void PlacePieceWithKey(BoardState board, PieceType pieceType, PieceColor pieceColor, int squareIndex)
+        {
+            board.PlacePiece(pieceType, pieceColor, squareIndex);
+            board.ZobristKey ^= Zobrist.PieceSquareKey(pieceType, pieceColor, squareIndex);
+        }
+
+        private static void RemovePieceWithKey(BoardState board, PieceType pieceType, PieceColor pieceColor, int squareIndex)
+        {
+            board.RemovePiece(pieceType, pieceColor, squareIndex);
+            board.ZobristKey ^= Zobrist.PieceSquareKey(pieceType, pieceColor, squareIndex);
         }
 
         private static void UpdateCastlingRights(
