@@ -1,7 +1,7 @@
 {
   "name": "Chess.Unity",
   "rootNamespace": "Chess.Unity",
-  "references": ["Chess.Core", "Unity.TextMeshPro"],
+  "references": ["Chess.Core", "Unity.TextMeshPro", "Unity.InputSystem"],
   "includePlatforms": [],
   "excludePlatforms": [],
   "autoReferenced": true
