@@ -7,9 +7,11 @@ namespace Chess.Unity
     public sealed class BoardView : MonoBehaviour
     {
         [Header("Prefabs")]
-        public GameObject LightSquarePrefab;
-        public GameObject DarkSquarePrefab;
+        public GameObject SquarePrefab;
         public GameObject PiecePrefab;
+
+        [Header("Colors")]
+        public BoardColorPalette ColorPalette;
 
         [Header("Piece sprites — 12 entries indexed by (color * 6 + (pieceType - 1))")]
         public Sprite[] PieceSprites = new Sprite[12];
@@ -19,6 +21,9 @@ namespace Chess.Unity
 
         private readonly SquareView[] _squareViews = new SquareView[64];
         private readonly Dictionary<int, PieceView> _pieceViewsBySquare = new Dictionary<int, PieceView>();
+        private GameObject _draggedPieceObject;
+
+        public SquareView GetSquareView(int squareIndex) => _squareViews[squareIndex];
 
         public void Build()
         {
@@ -27,13 +32,18 @@ namespace Chess.Unity
                 int fileIndex = Square.FileIndex(squareIndex);
                 int rankIndex = Square.RankIndex(squareIndex);
                 bool isLightSquare = (fileIndex + rankIndex) % 2 == 1;
-                var squareGameObject = Instantiate(isLightSquare ? LightSquarePrefab : DarkSquarePrefab, transform);
+                var squareGameObject = Instantiate(SquarePrefab, transform);
                 squareGameObject.transform.localPosition = ToLocalPosition(squareIndex);
                 squareGameObject.name = $"Sq_{Square.ToAlgebraic(squareIndex)}";
                 var squareView = squareGameObject.GetComponent<SquareView>();
                 squareView.SquareIndex = squareIndex;
-                int capturedSquareIndex = squareIndex;
+                squareView.IsLightSquare = isLightSquare;
+                squareView.ColorPalette = ColorPalette;
                 squareView.OnClick = clickedSquareIndex => OnSquareClicked?.Invoke(clickedSquareIndex);
+                squareView.OnDragBegin = HandleDragBegin;
+                squareView.OnDragMove = HandleDragMove;
+                squareView.OnDragEnd = HandleDragEnd;
+                squareView.SetHighlightState(SquareHighlightState.Normal);
                 _squareViews[squareIndex] = squareView;
             }
         }
@@ -42,6 +52,7 @@ namespace Chess.Unity
         {
             foreach (var pieceView in _pieceViewsBySquare.Values) Destroy(pieceView.gameObject);
             _pieceViewsBySquare.Clear();
+            _draggedPieceObject = null;
 
             for (int squareIndex = 0; squareIndex < 64; squareIndex++)
             {
@@ -71,5 +82,48 @@ namespace Chess.Unity
 
         public static int SpriteIndex(PieceType pieceType, PieceColor pieceColor)
             => (int)pieceColor * 6 + ((int)pieceType - 1);
+
+        private void HandleDragBegin(int sourceSquareIndex)
+        {
+            if (_pieceViewsBySquare.TryGetValue(sourceSquareIndex, out var pieceView))
+                _draggedPieceObject = pieceView.gameObject;
+            OnSquareClicked?.Invoke(sourceSquareIndex);
+        }
+
+        private void HandleDragMove(int sourceSquareIndex, Vector3 worldPosition)
+        {
+            if (_draggedPieceObject == null) return;
+            Vector3 localPosition = transform.InverseTransformPoint(worldPosition);
+            _draggedPieceObject.transform.localPosition = new Vector3(localPosition.x, localPosition.y, -0.5f);
+        }
+
+        private void HandleDragEnd(int sourceSquareIndex, Vector3 worldPosition)
+        {
+            var draggedReference = _draggedPieceObject;
+            _draggedPieceObject = null;
+
+            int destinationSquareIndex = WorldPositionToSquareIndex(worldPosition);
+            if (destinationSquareIndex >= 0 && destinationSquareIndex != sourceSquareIndex)
+                OnSquareClicked?.Invoke(destinationSquareIndex);
+            else
+                OnSquareClicked?.Invoke(sourceSquareIndex);
+
+            if (draggedReference != null)
+                draggedReference.transform.localPosition = ToLocalPosition(sourceSquareIndex) + new Vector3(0, 0, -0.1f);
+        }
+
+        private int WorldPositionToSquareIndex(Vector3 worldPosition)
+        {
+            Vector3 localPosition = transform.InverseTransformPoint(worldPosition);
+            int fileIndex = Mathf.RoundToInt(localPosition.x + 3.5f);
+            int rankIndex = Mathf.RoundToInt(localPosition.y + 3.5f);
+            if (FlipForBlack)
+            {
+                fileIndex = 7 - fileIndex;
+                rankIndex = 7 - rankIndex;
+            }
+            if (fileIndex < 0 || fileIndex > 7 || rankIndex < 0 || rankIndex > 7) return -1;
+            return Square.FromFileAndRank(fileIndex, rankIndex);
+        }
     }
 }

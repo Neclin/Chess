@@ -6,35 +6,35 @@ namespace Chess.Unity
     public sealed class HighlightOverlay : MonoBehaviour
     {
         public BoardView Board;
-        public GameObject DotPrefab;
-        public GameObject CapturePrefab;
-        public GameObject LastMovePrefab;
-        public GameObject SelectionPrefab;
 
-        private readonly List<GameObject> _spawnedHighlights = new List<GameObject>();
+        private readonly HashSet<int> _activelyHighlightedSquares = new HashSet<int>();
 
         public void Clear()
         {
-            foreach (var highlightObject in _spawnedHighlights) Destroy(highlightObject);
-            _spawnedHighlights.Clear();
+            foreach (var squareIndex in _activelyHighlightedSquares)
+                Board.GetSquareView(squareIndex).SetHighlightState(SquareHighlightState.Normal);
+            _activelyHighlightedSquares.Clear();
         }
 
-        public void ShowSelection(int squareIndex) => Spawn(SelectionPrefab, squareIndex);
+        public void ShowSelection(int squareIndex)
+        {
+            Board.GetSquareView(squareIndex).SetHighlightState(SquareHighlightState.Selected);
+            _activelyHighlightedSquares.Add(squareIndex);
+        }
 
-        public void ShowMoveTarget(int squareIndex, bool isCapture) => Spawn(isCapture ? CapturePrefab : DotPrefab, squareIndex);
+        public void ShowMoveTarget(int squareIndex, bool isCapture)
+        {
+            Board.GetSquareView(squareIndex).SetHighlightState(
+                isCapture ? SquareHighlightState.CaptureTarget : SquareHighlightState.MoveTarget);
+            _activelyHighlightedSquares.Add(squareIndex);
+        }
 
         public void ShowLastMove(int fromSquareIndex, int toSquareIndex)
         {
-            Spawn(LastMovePrefab, fromSquareIndex);
-            Spawn(LastMovePrefab, toSquareIndex);
-        }
-
-        private void Spawn(GameObject prefab, int squareIndex)
-        {
-            if (prefab == null) return;
-            var spawnedObject = Instantiate(prefab, Board.transform);
-            spawnedObject.transform.localPosition = Board.ToLocalPosition(squareIndex) + new Vector3(0, 0, -0.05f);
-            _spawnedHighlights.Add(spawnedObject);
+            Board.GetSquareView(fromSquareIndex).SetHighlightState(SquareHighlightState.LastMove);
+            Board.GetSquareView(toSquareIndex).SetHighlightState(SquareHighlightState.LastMove);
+            _activelyHighlightedSquares.Add(fromSquareIndex);
+            _activelyHighlightedSquares.Add(toSquareIndex);
         }
     }
 }
