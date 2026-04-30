@@ -4,6 +4,8 @@ namespace Chess.Core.Moves
 {
     public static class SlidingAttacks
     {
+        public static bool UseMagicBitboards = true;
+
         private static readonly int[,] RookRayDeltas =
         {
             { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 }
@@ -14,8 +16,16 @@ namespace Chess.Core.Moves
             { 1, 1 }, { 1, -1 }, { -1, 1 }, { -1, -1 }
         };
 
-        public static ulong Rook(int squareIndex, ulong occupancyBitboard) => MagicBitboards.RookAttacks(squareIndex, occupancyBitboard);
-        public static ulong Bishop(int squareIndex, ulong occupancyBitboard) => MagicBitboards.BishopAttacks(squareIndex, occupancyBitboard);
+        public static ulong Rook(int squareIndex, ulong occupancyBitboard)
+            => UseMagicBitboards
+                ? MagicBitboards.RookAttacks(squareIndex, occupancyBitboard)
+                : RookSlow(squareIndex, occupancyBitboard);
+
+        public static ulong Bishop(int squareIndex, ulong occupancyBitboard)
+            => UseMagicBitboards
+                ? MagicBitboards.BishopAttacks(squareIndex, occupancyBitboard)
+                : BishopSlow(squareIndex, occupancyBitboard);
+
         public static ulong Queen(int squareIndex, ulong occupancyBitboard) => Rook(squareIndex, occupancyBitboard) | Bishop(squareIndex, occupancyBitboard);
 
         public static ulong RookSlow(int squareIndex, ulong occupancyBitboard) => RaySlideAttacks(squareIndex, occupancyBitboard, RookRayDeltas);

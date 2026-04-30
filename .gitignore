@@ -68,3 +68,8 @@ crashlytics-build.properties
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Standalone tools (e.g. tools/benchmark/) — keep source and csproj, ignore build artefacts
+tools/**/bin/
+tools/**/obj/
+!tools/**/*.csproj
