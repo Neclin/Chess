@@ -24,6 +24,30 @@ namespace Chess.Tools
         public const string StartPositionFen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
         private const int MaximumPliesBeforeAdjudication = 400;
 
+        public static readonly Dictionary<string, EngineConfig> NamedConfigs = new Dictionary<string, EngineConfig>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["baseline"] = new EngineConfig { Name = "baseline", UseTranspositionTable = false, UseMoveOrdering = false, UseMagicBitboards = false },
+            ["tt"]       = new EngineConfig { Name = "tt",       UseTranspositionTable = true,  UseMoveOrdering = false, UseMagicBitboards = false },
+            ["ordering"] = new EngineConfig { Name = "ordering", UseTranspositionTable = false, UseMoveOrdering = true,  UseMagicBitboards = false },
+            ["magic"]    = new EngineConfig { Name = "magic",    UseTranspositionTable = false, UseMoveOrdering = false, UseMagicBitboards = true  },
+            ["full"]     = new EngineConfig { Name = "full",     UseTranspositionTable = true,  UseMoveOrdering = true,  UseMagicBitboards = true  }
+        };
+
+        public static EngineConfig CloneNamedConfig(string configurationName, int searchDepth, int timeBudgetMs)
+        {
+            if (!NamedConfigs.TryGetValue(configurationName, out var template))
+                throw new ArgumentException($"Unknown config '{configurationName}'. Known: {string.Join(", ", NamedConfigs.Keys)}");
+            return new EngineConfig
+            {
+                Name = template.Name,
+                UseTranspositionTable = template.UseTranspositionTable,
+                UseMoveOrdering = template.UseMoveOrdering,
+                UseMagicBitboards = template.UseMagicBitboards,
+                Depth = searchDepth,
+                TimeMs = timeBudgetMs
+            };
+        }
+
         public sealed class MatchResult
         {
             public string White;
@@ -32,6 +56,17 @@ namespace Chess.Tools
             public GameResult Outcome;
             public int Plies;
             public List<Move> Moves = new List<Move>();
+        }
+
+        public static Move ChooseMove(BoardState board, EngineConfig sideConfig)
+        {
+            MinimaxSearch.ConfigFlags(
+                sideConfig.UseTranspositionTable,
+                sideConfig.UseMoveOrdering,
+                sideConfig.UseMagicBitboards);
+            return sideConfig.TimeMs > 0
+                ? IterativeDeepening.Search(board, maxDepth: 64, timeMs: sideConfig.TimeMs).BestMove
+                : MinimaxSearch.FindBestMove(board, sideConfig.Depth).BestMove;
         }
 
         public static List<MatchResult> RunMatch(EngineConfig configurationA, EngineConfig configurationB, int games,
@@ -81,14 +116,7 @@ namespace Chess.Tools
                 }
 
                 EngineConfig sideToMoveConfig = board.SideToMove == PieceColor.White ? whiteConfig : blackConfig;
-                MinimaxSearch.ConfigFlags(
-                    sideToMoveConfig.UseTranspositionTable,
-                    sideToMoveConfig.UseMoveOrdering,
-                    sideToMoveConfig.UseMagicBitboards);
-
-                Move chosenMove = sideToMoveConfig.TimeMs > 0
-                    ? IterativeDeepening.Search(board, maxDepth: 64, timeMs: sideToMoveConfig.TimeMs).BestMove
-                    : MinimaxSearch.FindBestMove(board, sideToMoveConfig.Depth).BestMove;
+                Move chosenMove = ChooseMove(board, sideToMoveConfig);
 
                 MoveExecutor.MakeMove(board, chosenMove);
                 matchResult.Moves.Add(chosenMove);
