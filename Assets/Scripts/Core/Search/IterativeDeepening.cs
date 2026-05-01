@@ -35,26 +35,37 @@ namespace Chess.Core.Search
             }
 
             var stopwatch = Stopwatch.StartNew();
-            Move bestMove = default;
-            int bestScore = 0;
-            long totalNodes = 0;
-            int depthReached = 0;
+            var deadline = new SearchDeadline(stopwatch, timeMs);
+
+            Move bestMoveFound = default;
+            int bestScoreFound = 0;
+            int depthOfBestMove = 0;
+            long totalNodesAcrossIterations = 0;
 
             for (int depth = 1; depth <= maxDepth; depth++)
             {
-                if (depth > 1 && stopwatch.ElapsedMilliseconds > timeMs / 2) break;
+                SearchResult iterationResult = MinimaxSearch.FindBestMove(board, depth, deadline);
+                totalNodesAcrossIterations += iterationResult.NodesVisited;
 
-                SearchResult iterationResult = MinimaxSearch.FindBestMove(board, depth);
-                bestMove = iterationResult.BestMove;
-                bestScore = iterationResult.Score;
-                totalNodes += iterationResult.NodesVisited;
-                depthReached = depth;
+                if (iterationResult.Aborted)
+                {
+                    if (iterationResult.HasUsablePartialResult)
+                    {
+                        bestMoveFound = iterationResult.BestMove;
+                        bestScoreFound = iterationResult.Score;
+                        depthOfBestMove = depth;
+                    }
+                    break;
+                }
 
-                if (stopwatch.ElapsedMilliseconds > timeMs) break;
-                if (Math.Abs(bestScore) > MinimaxSearch.MateScore - 1000) break;
+                bestMoveFound = iterationResult.BestMove;
+                bestScoreFound = iterationResult.Score;
+                depthOfBestMove = depth;
+
+                if (Math.Abs(bestScoreFound) > MinimaxSearch.MateScore - 1000) break;
             }
 
-            return new IterativeDeepeningResult(bestMove, bestScore, depthReached, totalNodes);
+            return new IterativeDeepeningResult(bestMoveFound, bestScoreFound, depthOfBestMove, totalNodesAcrossIterations);
         }
     }
 }

@@ -10,12 +10,21 @@ namespace Chess.Core.Search
         public readonly Move BestMove;
         public readonly int Score;
         public readonly long NodesVisited;
+        public readonly bool Aborted;
+        public readonly bool HasUsablePartialResult;
 
         public SearchResult(Move bestMove, int score, long nodesVisited)
+            : this(bestMove, score, nodesVisited, aborted: false, hasUsablePartialResult: false)
+        {
+        }
+
+        public SearchResult(Move bestMove, int score, long nodesVisited, bool aborted, bool hasUsablePartialResult)
         {
             BestMove = bestMove;
             Score = score;
             NodesVisited = nodesVisited;
+            Aborted = aborted;
+            HasUsablePartialResult = hasUsablePartialResult;
         }
     }
 
@@ -33,6 +42,7 @@ namespace Chess.Core.Search
     {
         public const int MateScore = 1_000_000;
         public const int Infinity = 10_000_000;
+        private const long DeadlineCheckIntervalMask = 1023;
 
         public static SearchFeatureFlags Features = SearchFeatureFlags.All;
 
@@ -58,6 +68,11 @@ namespace Chess.Core.Search
 
         public static SearchResult FindBestMove(BoardState board, int depth)
         {
+            return FindBestMove(board, depth, default);
+        }
+
+        public static SearchResult FindBestMove(BoardState board, int depth, SearchDeadline deadline)
+        {
             if (OpeningBook.Enabled
                 && OpeningBook.Default != null
                 && board.FullmoveNumber <= OpeningBook.LastFullmoveProbed)
@@ -68,8 +83,9 @@ namespace Chess.Core.Search
             }
 
             long nodesVisited = 0;
-            Move bestMove = default;
-            int bestScore = -Infinity;
+            Move bestMoveFromCompletedRootMoves = default;
+            int bestScoreFromCompletedRootMoves = -Infinity;
+            int rootMovesFullyScored = 0;
             int alpha = -Infinity;
             int beta = Infinity;
 
@@ -81,24 +97,48 @@ namespace Chess.Core.Search
                 return new SearchResult(default, terminalScore, 0);
             }
 
-            foreach (var legalMove in legalMoves)
+            try
             {
-                var undoInfo = MoveExecutor.MakeMove(board, legalMove);
-                int score = -AlphaBeta(board, depth - 1, -beta, -alpha, ref nodesVisited);
-                MoveExecutor.UnmakeMove(board, legalMove, undoInfo);
-                if (score > bestScore)
+                foreach (var legalMove in legalMoves)
                 {
-                    bestScore = score;
-                    bestMove = legalMove;
+                    var undoInfo = MoveExecutor.MakeMove(board, legalMove);
+                    int score;
+                    try
+                    {
+                        score = -AlphaBeta(board, depth - 1, -beta, -alpha, ref nodesVisited, deadline);
+                    }
+                    finally
+                    {
+                        MoveExecutor.UnmakeMove(board, legalMove, undoInfo);
+                    }
+
+                    rootMovesFullyScored++;
+                    if (score > bestScoreFromCompletedRootMoves)
+                    {
+                        bestScoreFromCompletedRootMoves = score;
+                        bestMoveFromCompletedRootMoves = legalMove;
+                    }
+                    if (score > alpha) alpha = score;
                 }
-                if (score > alpha) alpha = score;
             }
-            return new SearchResult(bestMove, bestScore, nodesVisited);
+            catch (SearchAbortedException)
+            {
+                return new SearchResult(
+                    bestMove: bestMoveFromCompletedRootMoves,
+                    score: bestScoreFromCompletedRootMoves,
+                    nodesVisited: nodesVisited,
+                    aborted: true,
+                    hasUsablePartialResult: rootMovesFullyScored > 0);
+            }
+
+            return new SearchResult(bestMoveFromCompletedRootMoves, bestScoreFromCompletedRootMoves, nodesVisited);
         }
 
-        private static int AlphaBeta(BoardState board, int depth, int alpha, int beta, ref long nodesVisited)
+        private static int AlphaBeta(BoardState board, int depth, int alpha, int beta, ref long nodesVisited, SearchDeadline deadline)
         {
             nodesVisited++;
+            if ((nodesVisited & DeadlineCheckIntervalMask) == 0 && deadline.IsExpired)
+                throw new SearchAbortedException();
             if (depth == 0) return Evaluator.Evaluate(board);
 
             int originalAlpha = alpha;
@@ -130,8 +170,15 @@ namespace Chess.Core.Search
             foreach (var legalMove in legalMoves)
             {
                 var undoInfo = MoveExecutor.MakeMove(board, legalMove);
-                int score = -AlphaBeta(board, depth - 1, -beta, -alpha, ref nodesVisited);
-                MoveExecutor.UnmakeMove(board, legalMove, undoInfo);
+                int score;
+                try
+                {
+                    score = -AlphaBeta(board, depth - 1, -beta, -alpha, ref nodesVisited, deadline);
+                }
+                finally
+                {
+                    MoveExecutor.UnmakeMove(board, legalMove, undoInfo);
+                }
 
                 if (score > bestScore)
                 {
