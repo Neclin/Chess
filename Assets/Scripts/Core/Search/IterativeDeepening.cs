@@ -25,6 +25,15 @@ namespace Chess.Core.Search
     {
         public static IterativeDeepeningResult Search(BoardState board, int maxDepth, int timeMs)
         {
+            if (OpeningBook.Enabled
+                && OpeningBook.Default != null
+                && board.FullmoveNumber <= OpeningBook.LastFullmoveProbed)
+            {
+                Move? openingBookMoveOrNull = OpeningBook.Default.PickWeighted(board, OpeningBook.SharedRandom);
+                if (openingBookMoveOrNull.HasValue)
+                    return new IterativeDeepeningResult(openingBookMoveOrNull.Value, 0, 0, 0);
+            }
+
             var stopwatch = Stopwatch.StartNew();
             Move bestMove = default;
             int bestScore = 0;

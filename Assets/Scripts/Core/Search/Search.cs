@@ -58,6 +58,15 @@ namespace Chess.Core.Search
 
         public static SearchResult FindBestMove(BoardState board, int depth)
         {
+            if (OpeningBook.Enabled
+                && OpeningBook.Default != null
+                && board.FullmoveNumber <= OpeningBook.LastFullmoveProbed)
+            {
+                Move? openingBookMoveOrNull = OpeningBook.Default.PickWeighted(board, OpeningBook.SharedRandom);
+                if (openingBookMoveOrNull.HasValue)
+                    return new SearchResult(openingBookMoveOrNull.Value, 0, 0);
+            }
+
             long nodesVisited = 0;
             Move bestMove = default;
             int bestScore = -Infinity;
