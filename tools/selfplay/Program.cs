@@ -12,15 +12,6 @@ namespace Chess.SelfPlay
 {
     public static class Program
     {
-        private static readonly Dictionary<string, EngineConfig> ConfigCatalogue = new Dictionary<string, EngineConfig>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["baseline"] = new EngineConfig { Name = "baseline", UseTranspositionTable = false, UseMoveOrdering = false, UseMagicBitboards = false },
-            ["tt"]       = new EngineConfig { Name = "tt",       UseTranspositionTable = true,  UseMoveOrdering = false, UseMagicBitboards = false },
-            ["ordering"] = new EngineConfig { Name = "ordering", UseTranspositionTable = false, UseMoveOrdering = true,  UseMagicBitboards = false },
-            ["magic"]    = new EngineConfig { Name = "magic",    UseTranspositionTable = false, UseMoveOrdering = false, UseMagicBitboards = true  },
-            ["full"]     = new EngineConfig { Name = "full",     UseTranspositionTable = true,  UseMoveOrdering = true,  UseMagicBitboards = true  }
-        };
-
         private static readonly string[] DefaultRoundRobinOrder = { "baseline", "tt", "ordering", "magic", "full" };
 
         public static int Main(string[] commandLineArguments)
@@ -202,20 +193,12 @@ namespace Chess.SelfPlay
 
         private static EngineConfig ResolveConfig(string configurationName, int searchDepth, int timeBudgetMs)
         {
-            if (!ConfigCatalogue.TryGetValue(configurationName, out var template))
+            if (!SelfPlayArena.NamedConfigs.ContainsKey(configurationName))
             {
-                Console.Error.WriteLine($"Unknown config '{configurationName}'. Known: {string.Join(", ", ConfigCatalogue.Keys)}");
+                Console.Error.WriteLine($"Unknown config '{configurationName}'. Known: {string.Join(", ", SelfPlayArena.NamedConfigs.Keys)}");
                 return null;
             }
-            return new EngineConfig
-            {
-                Name = template.Name,
-                UseTranspositionTable = template.UseTranspositionTable,
-                UseMoveOrdering = template.UseMoveOrdering,
-                UseMagicBitboards = template.UseMagicBitboards,
-                Depth = searchDepth,
-                TimeMs = timeBudgetMs
-            };
+            return SelfPlayArena.CloneNamedConfig(configurationName, searchDepth, timeBudgetMs);
         }
 
         private static string[] ParseRoundRobinNames(string[] commandLineArguments)
