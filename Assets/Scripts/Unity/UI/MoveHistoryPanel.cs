@@ -52,6 +52,20 @@ namespace Chess.Unity.UI
             if (HistoryText != null) HistoryText.text = string.Empty;
         }
 
+        public void ResetForExternalDriver(PieceColor startingSide, int startingFullmoveNumber)
+        {
+            _sanByPly.Clear();
+            _startingSide = startingSide;
+            _startingFullmoveNumber = startingFullmoveNumber;
+            if (HistoryText != null) HistoryText.text = string.Empty;
+        }
+
+        public void AppendSanMove(string sanText)
+        {
+            _sanByPly.Add(sanText);
+            Render();
+        }
+
         private void Render()
         {
             if (HistoryText == null) return;

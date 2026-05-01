@@ -1,3 +1,4 @@
+#if UNITY_EDITOR
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -162,3 +163,4 @@ namespace Chess.Tools
         }
     }
 }
+#endif

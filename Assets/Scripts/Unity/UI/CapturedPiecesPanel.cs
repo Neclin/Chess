@@ -52,6 +52,21 @@ namespace Chess.Unity.UI
             UpdateBalanceLabel();
         }
 
+        public void ResetForExternalDriver()
+        {
+            _capturedPieces.Clear();
+            ClearChildren(WhiteCapturesRow);
+            ClearChildren(BlackCapturesRow);
+            UpdateBalanceLabel();
+        }
+
+        public void RecordCapture(PieceType capturedPieceType, PieceColor capturerColor)
+        {
+            _capturedPieces.Add(new CapturedPiece(capturedPieceType, capturerColor));
+            RebuildRows();
+            UpdateBalanceLabel();
+        }
+
         private void RebuildRows()
         {
             ClearChildren(WhiteCapturesRow);

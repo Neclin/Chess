@@ -1,0 +1,6 @@
+{
+  "name": "Chess.Unity.SelfPlay",
+  "rootNamespace": "Chess.Unity.SelfPlay",
+  "references": ["Chess.Core", "Chess.Tools", "Chess.Unity", "Unity.TextMeshPro"],
+  "autoReferenced": true
+}
